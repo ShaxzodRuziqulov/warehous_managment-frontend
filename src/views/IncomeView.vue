@@ -191,6 +191,7 @@ const loadIncome = async () => {
   }
 }
 
+
 const getProductName = (id: number): string => {
   const product = products.value.find(p => p.id === id);
   return product ? product.name : "Noma’lum mahsulot";

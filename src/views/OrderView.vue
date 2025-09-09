@@ -135,11 +135,6 @@ const getProductName = (id: number): string => {
   return product ? product.name : "Noma’lum mahsulot";
 };
 
-const getWarehouseName = (id: number): string => {
-  const warehouse = wareHouses.value.find(w => w.id === id);
-  return warehouse ? `${warehouse.id}` : "Noma’lum ombor";
-};
-
 const getMeasureName = (id: number): string => {
   const measure = measures.value.find(m => m.id === id);
   return measure ? measure.name : "Noma’lum o‘lchov";
