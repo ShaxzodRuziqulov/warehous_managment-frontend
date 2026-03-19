@@ -1,71 +1,107 @@
-import type {
-    createIncome,
-    createMeasure,
-    createOrder,
-    createProduct,
-    updateIncome, updateOrder,
-    updateProduct
-} from "../models/Product.ts";
-import axiosInstance from "../axios.ts";
+import axios from '../axios'
+import type { PaginatedRequest } from '../types'
+
+const withLeadingSlash = (value: string) => (value.startsWith('/') ? value : `/${value}`)
+
+const getIdValue = (entity: Record<string, unknown>) => {
+  return (entity.id ?? entity.userId ?? entity.businessId ?? entity.marketId ?? entity.roleId ?? entity.tagId) as
+    | number
+    | string
+    | undefined
+}
 
 export const ApiService = {
-    async createProduct(product: createProduct) {
-        return await axiosInstance.post("/api/product/create", product);
-    },
-    async updateProduct(id: number, product: updateProduct) {
-        return await axiosInstance.put(`/api/product/update/${id}`, product);
-    },
-    async createMeasure(user: createMeasure) {
-        const response = await axiosInstance.post("/api/measure/create", user);
-        return response.data;
-    },
-    async createIncome(income: createIncome) {
-        const response = await axiosInstance.post("/api/income/create", income);
-        return response.data;
-    },
-    async updateIncome(id: number, income: updateIncome) {
-        return await axiosInstance.put(`/api/income/update/${id}`, income);
-    },
-    async createOrder(order: createOrder) {
-        return await axiosInstance.post("/api/order/create", order);
-    },
-    async updateOrder(id: number, order: updateOrder) {
-        return await axiosInstance.put(`/api/order/update/${id}`, order);
-    },
-    async getAllOrders() {
-        return await axiosInstance.get("/api/order/all");
-    },
-    async getAllIncomes() {
-        return await axiosInstance.get("/api/income/all");
-    },
-    async getAllMeasures() {
-        return axiosInstance.get("/api/measure/all")
-    },
-    async getAllProducts() {
-        return axiosInstance.get("/api/product/active");
-    },
-    async getAllWarehouses() {
-        return axiosInstance.get("/api/warehouse/all");
-    },
-    async updateMeasure(id: number, data: createMeasure) {
-        return await axiosInstance.put(`api/measure/update/${id}`, data);
-    },
-    async deleteMeasure(id: number) {
-        return await axiosInstance.delete(`api/measure/delete/${id}`);
-    },
-    async deleteProduct(id: number) {
-        return await axiosInstance.delete(`api/product/delete/${id}`);
-    },
-    async deleteIncome(id: number) {
-        return await axiosInstance.delete(`/api/income/delete/${id}`);
-    },
-    async deleteOrder(id: number) {
-        return await axiosInstance.delete(`/api/order/delete/${id}`);
-    },
-    async activeIncome() {
-        return await axiosInstance.get("/api/income/allActive");
-    },
-    async activeOrder() {
-        return await axiosInstance.get("/api/order/allActive");
+  async list(path: string) {
+    const { data } = await axios.get(withLeadingSlash(path))
+    return Array.isArray(data) ? data : []
+  },
+
+  async detail(path: string, id: number | string) {
+    const { data } = await axios.get(`${withLeadingSlash(path)}/${id}`)
+    return data
+  },
+
+  async create(path: string, payload: Record<string, unknown>) {
+    const { data } = await axios.post(`${withLeadingSlash(path)}/create`, payload)
+    return data
+  },
+
+  async update(path: string, id: number | string, payload: Record<string, unknown>) {
+    const { data } = await axios.put(`${withLeadingSlash(path)}/update/${id}`, payload)
+    return data
+  },
+
+  async remove(path: string, id: number | string, deleteEndpoint = '/delete') {
+    const { data } = await axios.delete(`${withLeadingSlash(path)}${deleteEndpoint}/${id}`)
+    return data
+  },
+
+  async paging(path: string, payload: PaginatedRequest) {
+    const { data } = await axios.post(`${withLeadingSlash(path)}/paging`, payload)
+    if (Array.isArray(data)) {
+      return { content: data, totalElements: data.length }
     }
+    if (Array.isArray(data?.content)) {
+      return data
+    }
+    if (Array.isArray(data?.data)) {
+      return { content: data.data, totalElements: data.totalElements ?? data.data.length }
+    }
+    return { content: [], totalElements: 0 }
+  },
+
+  async count(path: string) {
+    const { data } = await axios.get<number>(`${withLeadingSlash(path)}/count`)
+    return typeof data === 'number' ? data : Number(data ?? 0)
+  },
+
+  async latestIncomes(limit = 5) {
+    try {
+      const { data } = await axios.get('/api/admin/income/latest', { params: { limit } })
+      return Array.isArray(data) ? data : []
+    } catch {
+      const { data } = await axios.get('/api/admin/income/latest')
+      return Array.isArray(data) ? data : []
+    }
+  },
+
+  async productChart() {
+    const { data } = await axios.get('/api/admin/product/chart')
+    if (Array.isArray(data)) {
+      return data
+    }
+    return Object.entries(data ?? {}).map(([label, value]) => ({ label, value }))
+  },
+
+  async workflow(path: string) {
+    const { data } = await axios.get(withLeadingSlash(path))
+    return data
+  },
+
+  async loadCollection(path: string, supportsPaging = true, search = '', page = 0, size = 10) {
+    if (supportsPaging) {
+      try {
+        const paged = await this.paging(path, { page, size, search })
+        if (paged.content.length > 0 || search || paged.totalElements > 0) {
+          return paged
+        }
+      } catch {
+      }
+    }
+
+    const fallback = await this.list(`${path}/all`)
+    const normalizedSearch = search.trim().toLowerCase()
+    const filtered = normalizedSearch
+      ? fallback.filter((item: Record<string, unknown>) =>
+          JSON.stringify(item).toLowerCase().includes(normalizedSearch),
+        )
+      : fallback
+
+    return {
+      content: filtered.slice(page * size, page * size + size),
+      totalElements: filtered.length,
+    }
+  },
+
+  getIdValue,
 }

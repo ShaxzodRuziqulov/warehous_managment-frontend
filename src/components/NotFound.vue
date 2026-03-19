@@ -1,14 +1,8 @@
-<script setup lang="ts">
-
-</script>
-
 <template>
-<div class="flex flex-col items-center justify-center">
-  <h1 class="text-[64px]  text-black ">404 Not Found</h1>
-  <router-link class="text-blue-600 hover:text-blue-300 text-2xl" to="/">Back to home</router-link>
-</div>
+  <div class="not-found">
+    <p class="eyebrow">404</p>
+    <h1>Page not found</h1>
+    <p>The requested page does not exist in this admin frontend.</p>
+    <router-link class="primary-button" to="/dashboard">Back to dashboard</router-link>
+  </div>
 </template>
-
-<style scoped>
-
-</style>

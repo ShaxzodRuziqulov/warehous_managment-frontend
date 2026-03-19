@@ -1,13 +1,13 @@
-import type {LoginUser, RegisterUser} from "../models/Product.ts";
-import axiosInstance from "../axios.ts";
+import axios from '../axios'
+import type { AuthResponse, CurrentUser, LoginPayload } from '../types'
 
 export const AuthService = {
-    async signUp(user: RegisterUser) {
-        const response = await axiosInstance.post("/auth/signup", user);
-        return response.data;
-    },
-    async login(user: LoginUser) {
-        const response = await axiosInstance.post("/auth/login", user);
-        return response.data;
-    },
+  async login(payload: LoginPayload) {
+    const { data } = await axios.post<AuthResponse>('/auth/login', payload)
+    return data
+  },
+  async me() {
+    const { data } = await axios.get<CurrentUser>('/auth/me')
+    return data
+  },
 }

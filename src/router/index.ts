@@ -1,92 +1,92 @@
-import {createRouter, createWebHistory} from "vue-router";
+import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
+import Layout from '../layouts/Layout.vue'
+import LoginView from '../pages/LoginPage.vue'
+import DashboardPage from '../pages/DashboardPage.vue'
+import ResourcePage from '../pages/ResourcePage.vue'
+import NotFound from '../components/NotFound.vue'
+import { adminModules } from '../config/modules'
+import { isAuthenticated } from '../lib/auth'
 
-import type {RouteRecordRaw} from "vue-router"
-import MainLayout from "../layouts/Layout.vue";
-import HomeView from "../views/HomeView.vue";
-import ProductView from "../views/ProductView.vue";
-import NotFound from "../components/NotFound.vue";
-import OrderView from "../views/OrderView.vue";
-import SignUp from "../components/SignUp.vue";
-import Login from "../components/Login.vue";
-import MeasureView from "../views/MeasureView.vue";
-import IncomeView from "../views/IncomeView.vue";
+const childRoutes: RouteRecordRaw[] = [
+  {
+    path: 'dashboard',
+    name: 'dashboard',
+    component: DashboardPage,
+    meta: {
+      requiresAuth: true,
+      title: 'Dashboard',
+    },
+  },
+]
 
-const routes: Array<RouteRecordRaw> = [
-    {
-        path: "/",
-        name: "Main",
-        redirect: "/dashboard",
-        component: MainLayout,
-        meta: {requiresAuth: true},
-        children: [
-            {
-                path: "/dashboard",
-                name: "DashboardView",
-                component: HomeView,
-                meta: {requiresAuth: true}
-            },
-            {
-                path: "/products",
-                name: "ProductView",
-                component: ProductView,
-                meta: {requiresAuth: true}
-            },
-            {
-                path: "/orders",
-                name: "OrdersView",
-                component: OrderView,
-                meta: {requiresAuth: true}
-            },
-            {
-                path: "/measures",
-                name: "MeasureView",
-                component: MeasureView,
-                meta: {requiresAuth: true}
-            },
-            {
-                path:"/incomes",
-                name:"IncomeView",
-                component: IncomeView,
-                meta: {requiresAuth: true}
-            }
-        ]
+adminModules.forEach((module) => {
+  childRoutes.push({
+    path: module.route,
+    name: module.route,
+    component: ResourcePage,
+    props: {
+      moduleKey: module.key,
     },
-    {
-        path: "/signup",
-        name: 'SignUp',
-        component: SignUp
+    meta: {
+      requiresAuth: true,
+      title: module.label,
     },
-    {
-        path: "/login",
-        name: 'Login',
-        component: Login
-    },
-    {
-        path: '/:pathMatch(.*)*',
-        name: 'NotFound',
-        component: NotFound
-    }
-];
-
-const router = createRouter({
-    history: createWebHistory(),
-    routes
+  })
 })
 
-router.beforeEach((to, _, next) => {
-    const token = localStorage.getItem("token");
-    const isLoggedIn = !!token;
+const routes: RouteRecordRaw[] = [
+  {
+    path: '/',
+    component: Layout,
+    redirect: '/dashboard',
+    meta: {
+      requiresAuth: true,
+    },
+    children: childRoutes,
+  },
+  {
+    path: '/login',
+    name: 'login',
+    component: LoginView,
+    meta: {
+      guestOnly: true,
+      title: 'Login',
+    },
+  },
+  {
+    path: '/:pathMatch(.*)*',
+    name: 'not-found',
+    component: NotFound,
+    meta: {
+      title: 'Not Found',
+    },
+  },
+]
 
-    if (to.meta.requiresAuth && !isLoggedIn) {
-        next("/login");
-    }
-    else if ((to.path === "/login" || to.path === "/signup") && isLoggedIn) {
-        next("/dashboard");
-    }
-    else {
-        next();
-    }
-});
+const router = createRouter({
+  history: createWebHistory(),
+  routes,
+})
 
+router.beforeEach((to) => {
+  if (typeof to.meta.title === 'string') {
+    document.title = `${to.meta.title} | Warehouse Admin`
+  }
+
+  if (to.meta.requiresAuth && !isAuthenticated()) {
+    return {
+      name: 'login',
+      query: {
+        redirect: to.fullPath,
+      },
+    }
+  }
+
+  if (to.meta.guestOnly && isAuthenticated()) {
+    return { name: 'dashboard' }
+  }
+
+  return true
+})
 
 export default router

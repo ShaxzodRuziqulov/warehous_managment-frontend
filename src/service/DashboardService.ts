@@ -1,9 +1,9 @@
-import axios from "../axios.ts";
+import { ApiService } from './ApiService'
 
 export const DashboardService = {
-    getProductCount: () => axios.get('/api/product/count'),
-    getOrderCount: () => axios.get('/api/order/count'),
-    getIncomeCount: () => axios.get('/api/income/count'),
-    getLatestIncomes: () => axios.get('/api/income/latest'),
-    getChartData: () => axios.get('/api/product/chart'),
+  getProductCount: () => ApiService.count('/api/admin/product'),
+  getOrderCount: () => ApiService.count('/api/admin/order'),
+  getIncomeCount: () => ApiService.count('/api/admin/income'),
+  getLatestIncomes: () => ApiService.latestIncomes(5),
+  getChartData: () => ApiService.productChart(),
 }
